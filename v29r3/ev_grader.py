@@ -31,6 +31,11 @@ def _is_under_market(bet_type: str) -> bool:
     return "under" in b or "小" in b
 
 
+def _is_over_market(bet_type: str) -> bool:
+    b = _norm_market(bet_type)
+    return "over" in b or "大" in b
+
+
 def _is_under_25(bet_type: str) -> bool:
     b = _norm_market(bet_type)
     return any(k in b for k in ["under2.5", "u2.5", "小2.5"])
@@ -41,6 +46,11 @@ def _is_under_35(bet_type: str) -> bool:
     return any(k in b for k in ["under3.5", "u3.5", "小3.5"])
 
 
+def _is_over_25_or_35(bet_type: str) -> bool:
+    b = _norm_market(bet_type)
+    return any(k in b for k in ["over2.5", "o2.5", "大2.5", "over3.5", "o3.5", "大3.5"])
+
+
 def _is_btts_market(bet_type: str) -> bool:
     b = _norm_market(bet_type)
     return "btts" in b or "兩隊進球" in bet_type or "双方进球" in bet_type
@@ -49,6 +59,11 @@ def _is_btts_market(bet_type: str) -> bool:
 def _is_btts_no(bet_type: str) -> bool:
     b = _norm_market(bet_type)
     return _is_btts_market(bet_type) and any(k in b for k in ["no", "否", "不是"])
+
+
+def _is_btts_yes(bet_type: str) -> bool:
+    b = _norm_market(bet_type)
+    return _is_btts_market(bet_type) and any(k in b for k in ["yes", "是"])
 
 
 def _is_team_total_under(bet_type: str) -> bool:
@@ -130,7 +145,7 @@ def _apply_death_score_rules(
         grade = _downgrade(grade, 1)
         reasons.append("Top10死亡比分≥3個，降1級")
 
-    # V29-R3.7a / V29-R3.7a-1: under markets cannot be A when death-score concentration is meaningful.
+    # V29-R3.7a / V29-R3.7a-1 / V29-R3.7a-2: under markets cannot be A when death-score concentration is meaningful.
     if is_under and grade != "No Bet":
         if death_report.death_probability_top_n >= 0.12:
             before = grade
@@ -151,6 +166,77 @@ def _apply_death_score_rules(
     return grade
 
 
+def _apply_deep_right_tail_split(
+    grade: str,
+    bet_type: str,
+    sig: GateSignal,
+    reasons: List[str],
+) -> str:
+    is_under = _is_under_market(bet_type)
+    is_u25 = _is_under_25(bet_type)
+    is_u35 = _is_under_35(bet_type)
+    is_btts_no = _is_btts_no(bet_type)
+    is_btts_yes = _is_btts_yes(bet_type)
+    is_team_under = _is_team_total_under(bet_type)
+    is_over = _is_over_market(bet_type) or _is_over_25_or_35(bet_type)
+
+    if sig.code == "DEEP_RIGHT_TAIL_CLEAN_SHEET":
+        # Spain 4-0 / Japan 4-0 / Brazil 3-0 archetype.
+        if is_u35 or is_u25:
+            if sig.score >= 5:
+                reasons.append(f"{sig.code}: {sig.message}；小球在零封型右尾中不買")
+                return "No Bet"
+            before = grade
+            grade = _downgrade(grade, 1)
+            if before != grade:
+                reasons.append(f"{sig.code}: {sig.message}；小球降1級")
+            return grade
+
+        if is_btts_no or is_team_under:
+            # Clean-sheet right tail supports BTTS No / weak-team under, but do not upgrade in grading engine.
+            reasons.append(f"{sig.code}: {sig.message}；BTTS否/弱隊小不被右尾硬殺")
+            return grade
+
+        reasons.append(f"{sig.code}: {sig.message}")
+        return grade
+
+    if sig.code == "DEEP_RIGHT_TAIL_BTTS":
+        # Netherlands 5-1 / England 4-2 archetype.
+        if is_u35 or is_u25:
+            reasons.append(f"{sig.code}: {sig.message}；BTTS型深右尾下小球不買")
+            return "No Bet"
+
+        if is_btts_no or is_team_under:
+            if sig.score >= 6:
+                reasons.append(f"{sig.code}: {sig.message}；BTTS否/弱隊小在BTTS型深右尾不買")
+                return "No Bet"
+            before = grade
+            grade = _downgrade(grade, 2)
+            if before != grade:
+                reasons.append(f"{sig.code}: {sig.message}；BTTS否/弱隊小降2級")
+            return grade
+
+        if is_btts_yes or is_over:
+            # Positive signal only; do not upgrade automatically.
+            reasons.append(f"{sig.code}: {sig.message}；大球/BTTS是可觀察，但仍需EV")
+            return grade
+
+        reasons.append(f"{sig.code}: {sig.message}")
+        return grade
+
+    if sig.code == "DEEP_RIGHT_TAIL_MIXED":
+        if is_under:
+            before = grade
+            grade = _downgrade(grade, 1)
+            if before != grade:
+                reasons.append(f"{sig.code}: {sig.message}；混合右尾下小球降1級")
+        else:
+            reasons.append(f"{sig.code}: {sig.message}")
+        return grade
+
+    return grade
+
+
 def _apply_market_specific_gate(
     grade: str,
     bet_type: str,
@@ -158,23 +244,26 @@ def _apply_market_specific_gate(
     reasons: List[str],
 ) -> str:
     """
-    V29-R3.7a-1 Market-Specific Gate Patch.
+    V29-R3.7a-1 + V29-R3.7a-2 Market-Specific Gate.
 
-    Fixes the V29-R3.7a side effect where RIGHT_TAIL_SCORE=no_bet killed every market.
-    Right Tail / Low Block / Early Burst are now hard filters mainly for:
+    Right Tail / Low Block / Early Burst are hard filters mainly for:
     - Under 2.5 / Under 3.5
     - handicap / weak-side handicap safety
 
-    BTTS No and weak-side team-under markets should be judged primarily by
-    WEAK_SIDE_TRANSITION_CHAIN, not by RIGHT_TAIL alone.
+    Deep Right Tail Split further separates:
+    - DEEP_RIGHT_TAIL_CLEAN_SHEET
+    - DEEP_RIGHT_TAIL_BTTS
+    - DEEP_RIGHT_TAIL_MIXED
     """
-    is_under = _is_under_market(bet_type)
     is_u25 = _is_under_25(bet_type)
     is_u35 = _is_under_35(bet_type)
     is_btts = _is_btts_market(bet_type)
     is_team_under = _is_team_total_under(bet_type)
     is_handicap = _is_handicap_market(bet_type)
     is_win = _is_win_market(bet_type)
+
+    if sig.code in {"DEEP_RIGHT_TAIL_CLEAN_SHEET", "DEEP_RIGHT_TAIL_BTTS", "DEEP_RIGHT_TAIL_MIXED"}:
+        return _apply_deep_right_tail_split(grade, bet_type, sig, reasons)
 
     hard_under_codes = {
         "RIGHT_TAIL_SCORE",
@@ -251,7 +340,6 @@ def _apply_market_specific_gate(
                 reasons.append(f"{sig.code}: {sig.message}")
             return grade
 
-        # For win/under/handicap, weak-side chain is still a caution but not an automatic hard filter.
         if sig.level in {"downgrade", "reset"} and is_win:
             grade = _downgrade(grade, 1)
             reasons.append(f"{sig.code}: {sig.message}，勝負盤降1級")

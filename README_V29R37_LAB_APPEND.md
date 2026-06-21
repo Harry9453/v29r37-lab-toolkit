@@ -1,45 +1,74 @@
+## V29-R3.7a-2 Deep Right Tail Split Patch
 
-
-## V29-R3.7a-1 Market-Specific Gate Patch
-
-這不是 V29-R4。這是 V29-R3.7a 的小修正。
+這不是 V29-R4。這是 V29-R3.7a-1 後的小型右尾分型修正。
 
 ### 修正原因
 
-V29-R3.7a 成功讓強右尾局的小 3.5 降級或 No Bet，但發現 `RIGHT_TAIL_SCORE = no_bet` 若直接套用全部市場，會誤殺 BTTS No、弱隊小 0.5、強隊勝等市場。
-
-Spain 4-0 Saudi Arabia 的復盤顯示：
+V29-R3.7a-1 已經修正：
 
 ```text
-小3.5：應該 No Bet，因為 4-0、3-1、5-0 右尾集中。
-BTTS No：不應被 Right Tail 自動殺掉，因為強隊右尾常常伴隨弱隊零進球。
+Right Tail 不再全市場誤殺 BTTS No。
+小3.5 遇到強右尾會降級或 No Bet。
 ```
 
-### 修正內容
-
-`ev_grader.py` 改為 Market-Specific Gate：
+但已完賽驗證顯示，模型仍需要分辨兩種不同右尾：
 
 ```text
-RIGHT_TAIL_SCORE / LOW_BLOCK_FRAGILITY / EARLY_FAVORITE_BURST：
-- 硬性作用於 Under 2.5 / Under 3.5
-- 作用於讓分與受讓安全性
-- 不直接殺 BTTS No
-- 不直接殺弱隊小 0.5
-- 不直接殺強隊勝
+Clean-sheet Right Tail：
+Spain 4-0 Saudi Arabia
+Japan 4-0 Tunisia
+Brazil 3-0 Haiti
 
-WEAK_SIDE_TRANSITION_CHAIN：
-- 才是 BTTS No / 弱隊小 0.5 的主要降級依據
+BTTS Right Tail：
+Netherlands 5-1 Sweden
+England 4-2 Croatia
 ```
 
-### 新增測試
+### 新增內容
+
+`feature_gates.py` 新增：
 
 ```text
-examples/market_specific_gate_demo.py
+DeepRightTailFactors
+evaluate_deep_right_tail
 ```
 
-預期：
+會輸出：
 
 ```text
-Under 3.5 在強右尾 Gate 下被打成 No Bet。
-BTTS No 不會被 Right Tail 自動 No Bet，只會依弱隊進球鏈降級。
+DEEP_RIGHT_TAIL_CLEAN_SHEET
+DEEP_RIGHT_TAIL_BTTS
+DEEP_RIGHT_TAIL_MIXED
+DEEP_RIGHT_TAIL_NONE
+```
+
+### 市場影響
+
+Clean-sheet Right Tail：
+
+```text
+小3.5：降級 / No Bet
+BTTS否：不被右尾硬殺
+弱隊小0.5：可保留，但仍看 Weak-side Gate
+```
+
+BTTS Right Tail：
+
+```text
+小3.5：No Bet
+BTTS否：降級 / No Bet
+大2.5 / BTTS是：可觀察，但仍需 EV
+```
+
+### 測試檔
+
+```text
+examples/deep_right_tail_split_demo.py
+```
+
+測試目的：
+
+```text
+同樣是強隊右尾，
+4-0 型與 5-1 型不能套同一套 BTTS 邏輯。
 ```

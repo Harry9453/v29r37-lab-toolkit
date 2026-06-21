@@ -290,6 +290,90 @@ def evaluate_manager_shock(f: ManagerShockFactors) -> GateSignal:
     return GateSignal("ok", "MANAGER_SHOCK_NOT_RESET", float(score), "換帥風險未明顯觸發")
 
 
+# ---------------------------------------------------------------------------
+# V29-R3.7a-2 Deep Right Tail Split Patch
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class DeepRightTailFactors:
+    """
+    Split right-tail risk into clean-sheet and BTTS-tail forms.
+
+    clean_sheet_tail:
+        3-0 / 4-0 / 5-0 pattern. Under 3.5 dangerous, BTTS No can remain playable.
+
+    btts_tail:
+        3-1 / 4-1 / 4-2 / 5-1 / 5-2 pattern.
+        Under 3.5 dangerous and BTTS No should be downgraded or killed.
+    """
+    favorite_multi_point_attack: bool = False
+    favorite_late_push_or_sub_firepower: bool = False
+    favorite_can_score_after_lead: bool = False
+    weak_side_low_block_or_fragile_backline: bool = False
+
+    weak_side_transition_chain: bool = False
+    weak_side_set_piece_threat: bool = False
+    weak_side_projected_sot_two_plus: bool = False
+    match_can_open_both_ways: bool = False
+
+    favorite_defensive_control: bool = False
+    favorite_press_suppresses_counters: bool = False
+
+
+def evaluate_deep_right_tail(f: DeepRightTailFactors) -> GateSignal:
+    clean_score = sum([
+        f.favorite_multi_point_attack,
+        f.favorite_late_push_or_sub_firepower,
+        f.favorite_can_score_after_lead,
+        f.weak_side_low_block_or_fragile_backline,
+        f.favorite_defensive_control,
+        f.favorite_press_suppresses_counters,
+    ])
+
+    btts_score = sum([
+        f.favorite_multi_point_attack,
+        f.favorite_late_push_or_sub_firepower,
+        f.favorite_can_score_after_lead,
+        f.weak_side_transition_chain,
+        f.weak_side_set_piece_threat,
+        f.weak_side_projected_sot_two_plus,
+        f.match_can_open_both_ways,
+    ])
+
+    if btts_score >= 5 and btts_score >= clean_score:
+        level = "no_bet" if btts_score >= 6 else "downgrade"
+        return GateSignal(
+            level,
+            "DEEP_RIGHT_TAIL_BTTS",
+            float(btts_score),
+            f"BTTS型深右尾：4-1/5-1/4-2分支上修；BTTS否與小3.5降級或不買；clean_score={clean_score}",
+        )
+
+    if clean_score >= 5 and clean_score > btts_score:
+        level = "downgrade"
+        return GateSignal(
+            level,
+            "DEEP_RIGHT_TAIL_CLEAN_SHEET",
+            float(clean_score),
+            f"零封型深右尾：3-0/4-0/5-0分支上修；小3.5降級，但BTTS否不被右尾硬殺；btts_score={btts_score}",
+        )
+
+    if max(clean_score, btts_score) >= 4:
+        return GateSignal(
+            "caution",
+            "DEEP_RIGHT_TAIL_MIXED",
+            float(max(clean_score, btts_score)),
+            f"混合型右尾：需同時檢查3-0/4-0與3-1/4-1；clean_score={clean_score}, btts_score={btts_score}",
+        )
+
+    return GateSignal(
+        "ok",
+        "DEEP_RIGHT_TAIL_NONE",
+        float(max(clean_score, btts_score)),
+        f"深右尾未明顯觸發；clean_score={clean_score}, btts_score={btts_score}",
+    )
+
+
 def scoreline_in(scoreline: str, candidates: Iterable[str]) -> bool:
     return scoreline.replace(" ", "") in {c.replace(" ", "") for c in candidates}
 

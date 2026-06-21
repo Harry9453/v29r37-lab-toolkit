@@ -16,6 +16,7 @@ from .feature_gates import (
     EarlyFavoriteBurstFactors, evaluate_early_favorite_burst,
     CreativeReplacementFactors, evaluate_creative_replacement,
     ManagerShockFactors, evaluate_manager_shock,
+    DeepRightTailFactors, evaluate_deep_right_tail,
     worst_gate_level,
 )
 from .ev_grader import PickGrade, grade_pick
