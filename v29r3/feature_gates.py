@@ -132,10 +132,6 @@ class LowBlockFragilityFactors:
 
 
 def evaluate_low_block_fragility(f: LowBlockFragilityFactors) -> GateSignal:
-    """
-    Low Block ≠ Stable Under.
-    If a weak side's low block can be broken early, Under 2.5 / 3.5 must be downgraded.
-    """
     score = sum([
         f.weak_team_back_five_or_low_block,
         f.early_goal_concession_risk,
@@ -145,26 +141,11 @@ def evaluate_low_block_fragility(f: LowBlockFragilityFactors) -> GateSignal:
         f.favorite_needs_goal_difference,
     ])
     if score >= 5:
-        return GateSignal(
-            "no_bet",
-            "LOW_BLOCK_FRAGILITY",
-            float(score),
-            "低位防守脆弱且早球後易崩：Under 3.5 不得升A，Under 2.5嚴格不買",
-        )
+        return GateSignal("no_bet", "LOW_BLOCK_FRAGILITY", float(score), "低位防守脆弱且早球後易崩：Under 3.5 不得升A，Under 2.5嚴格不買")
     if score >= 4:
-        return GateSignal(
-            "downgrade",
-            "LOW_BLOCK_FRAGILITY",
-            float(score),
-            "低位防守不等於穩定小球：小球降級",
-        )
+        return GateSignal("downgrade", "LOW_BLOCK_FRAGILITY", float(score), "低位防守不等於穩定小球：小球降級")
     if score >= 3:
-        return GateSignal(
-            "caution",
-            "LOW_BLOCK_FRAGILITY",
-            float(score),
-            "低位防守有破局風險：需檢查3-0/4-0/3-1",
-        )
+        return GateSignal("caution", "LOW_BLOCK_FRAGILITY", float(score), "低位防守有破局風險：需檢查3-0/4-0/3-1")
     return GateSignal("ok", "LOW_BLOCK_FRAGILITY", float(score), "低位破局風險未明顯觸發")
 
 
@@ -178,10 +159,6 @@ class EarlyFavoriteBurstFactors:
 
 
 def evaluate_early_favorite_burst(f: EarlyFavoriteBurstFactors) -> GateSignal:
-    """
-    Early Favorite Burst Rule.
-    Strong favorite early goal path creates 3-0 / 4-0 right-tail branch.
-    """
     score = sum([
         f.early_goal_path,
         f.favorite_multi_point_attack,
@@ -190,19 +167,9 @@ def evaluate_early_favorite_burst(f: EarlyFavoriteBurstFactors) -> GateSignal:
         f.weak_side_defensive_confidence_low,
     ])
     if score >= 4:
-        return GateSignal(
-            "downgrade",
-            "EARLY_FAVORITE_BURST",
-            float(score),
-            "強隊早球爆發條件完整：3-0/4-0/5-0分支上修，小3.5降級",
-        )
+        return GateSignal("downgrade", "EARLY_FAVORITE_BURST", float(score), "強隊早球爆發條件完整：3-0/4-0/5-0分支上修，小3.5降級")
     if score >= 3:
-        return GateSignal(
-            "caution",
-            "EARLY_FAVORITE_BURST",
-            float(score),
-            "強隊有早球後連續進球條件：右尾需上修",
-        )
+        return GateSignal("caution", "EARLY_FAVORITE_BURST", float(score), "強隊有早球後連續進球條件：右尾需上修")
     return GateSignal("ok", "EARLY_FAVORITE_BURST", float(score), "早球爆發條件未明顯觸發")
 
 
@@ -216,10 +183,6 @@ class CreativeReplacementFactors:
 
 
 def evaluate_creative_replacement(f: CreativeReplacementFactors) -> GateSignal:
-    """
-    Creative Absence Replacement Chain.
-    A missing creator does not automatically mean under if the replacement chain is complete.
-    """
     replacement_score = sum([
         f.central_link_player_available,
         f.wide_breaker_available,
@@ -229,27 +192,11 @@ def evaluate_creative_replacement(f: CreativeReplacementFactors) -> GateSignal:
 
     if not f.star_creator_absent:
         return GateSignal("ok", "CREATIVE_REPLACEMENT_CHAIN", float(replacement_score), "未觸發主創缺陣修正")
-
     if replacement_score >= 4:
-        return GateSignal(
-            "downgrade",
-            "CREATIVE_REPLACEMENT_CHAIN",
-            float(replacement_score),
-            "主創缺陣但替代進攻鏈完整：不得因缺陣自動壓低總進球，強隊右尾保留",
-        )
+        return GateSignal("downgrade", "CREATIVE_REPLACEMENT_CHAIN", float(replacement_score), "主創缺陣但替代進攻鏈完整：不得因缺陣自動壓低總進球，強隊右尾保留")
     if replacement_score >= 2:
-        return GateSignal(
-            "caution",
-            "CREATIVE_REPLACEMENT_CHAIN",
-            float(replacement_score),
-            "主創缺陣但仍有部分替代鏈：進攻下修幅度需保守",
-        )
-    return GateSignal(
-        "ok",
-        "CREATIVE_REPLACEMENT_CHAIN",
-        float(replacement_score),
-        "主創缺陣且替代鏈不足：可下修進攻",
-    )
+        return GateSignal("caution", "CREATIVE_REPLACEMENT_CHAIN", float(replacement_score), "主創缺陣但仍有部分替代鏈：進攻下修幅度需保守")
+    return GateSignal("ok", "CREATIVE_REPLACEMENT_CHAIN", float(replacement_score), "主創缺陣且替代鏈不足：可下修進攻")
 
 
 @dataclass(frozen=True)
@@ -262,10 +209,6 @@ class ManagerShockFactors:
 
 
 def evaluate_manager_shock(f: ManagerShockFactors) -> GateSignal:
-    """
-    Manager Shock ≠ Defensive Reset.
-    A new manager after a heavy loss is not automatically a defensive upgrade.
-    """
     score = sum([
         f.recent_heavy_loss,
         f.interim_or_new_manager,
@@ -274,19 +217,9 @@ def evaluate_manager_shock(f: ManagerShockFactors) -> GateSignal:
         f.defensive_confidence_low,
     ])
     if score >= 4:
-        return GateSignal(
-            "downgrade",
-            "MANAGER_SHOCK_NOT_RESET",
-            float(score),
-            "換帥不等於防守修復：強隊3+機率上修，小球降級",
-        )
+        return GateSignal("downgrade", "MANAGER_SHOCK_NOT_RESET", float(score), "換帥不等於防守修復：強隊3+機率上修，小球降級")
     if score >= 3:
-        return GateSignal(
-            "caution",
-            "MANAGER_SHOCK_NOT_RESET",
-            float(score),
-            "換帥修復效果不明：不得自動上修防守穩定",
-        )
+        return GateSignal("caution", "MANAGER_SHOCK_NOT_RESET", float(score), "換帥修復效果不明：不得自動上修防守穩定")
     return GateSignal("ok", "MANAGER_SHOCK_NOT_RESET", float(score), "換帥風險未明顯觸發")
 
 
@@ -296,16 +229,6 @@ def evaluate_manager_shock(f: ManagerShockFactors) -> GateSignal:
 
 @dataclass(frozen=True)
 class DeepRightTailFactors:
-    """
-    Split right-tail risk into clean-sheet and BTTS-tail forms.
-
-    clean_sheet_tail:
-        3-0 / 4-0 / 5-0 pattern. Under 3.5 dangerous, BTTS No can remain playable.
-
-    btts_tail:
-        3-1 / 4-1 / 4-2 / 5-1 / 5-2 pattern.
-        Under 3.5 dangerous and BTTS No should be downgraded or killed.
-    """
     favorite_multi_point_attack: bool = False
     favorite_late_push_or_sub_firepower: bool = False
     favorite_can_score_after_lead: bool = False
@@ -342,35 +265,95 @@ def evaluate_deep_right_tail(f: DeepRightTailFactors) -> GateSignal:
 
     if btts_score >= 5 and btts_score >= clean_score:
         level = "no_bet" if btts_score >= 6 else "downgrade"
-        return GateSignal(
-            level,
-            "DEEP_RIGHT_TAIL_BTTS",
-            float(btts_score),
-            f"BTTS型深右尾：4-1/5-1/4-2分支上修；BTTS否與小3.5降級或不買；clean_score={clean_score}",
-        )
+        return GateSignal(level, "DEEP_RIGHT_TAIL_BTTS", float(btts_score), f"BTTS型深右尾：4-1/5-1/4-2分支上修；BTTS否與小3.5降級或不買；clean_score={clean_score}")
 
     if clean_score >= 5 and clean_score > btts_score:
         level = "downgrade"
-        return GateSignal(
-            level,
-            "DEEP_RIGHT_TAIL_CLEAN_SHEET",
-            float(clean_score),
-            f"零封型深右尾：3-0/4-0/5-0分支上修；小3.5降級，但BTTS否不被右尾硬殺；btts_score={btts_score}",
-        )
+        return GateSignal(level, "DEEP_RIGHT_TAIL_CLEAN_SHEET", float(clean_score), f"零封型深右尾：3-0/4-0/5-0分支上修；小3.5降級，但BTTS否不被右尾硬殺；btts_score={btts_score}")
 
     if max(clean_score, btts_score) >= 4:
+        return GateSignal("caution", "DEEP_RIGHT_TAIL_MIXED", float(max(clean_score, btts_score)), f"混合型右尾：需同時檢查3-0/4-0與3-1/4-1；clean_score={clean_score}, btts_score={btts_score}")
+
+    return GateSignal("ok", "DEEP_RIGHT_TAIL_NONE", float(max(clean_score, btts_score)), f"深右尾未明顯觸發；clean_score={clean_score}, btts_score={btts_score}")
+
+
+# ---------------------------------------------------------------------------
+# V29-R3.7a-3 Tail Intensity Patch
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class TailIntensityFactors:
+    """
+    Separates 3-0 controlled clean-sheet tail from explosive 4-0 / 5-0 tail,
+    and makes BTTS Yes usable only when the BTTS-tail conditions are strong enough.
+    """
+    clean_sheet_tail: bool = False
+    favorite_can_stop_at_three: bool = False
+    favorite_game_management_after_lead: bool = False
+    opponent_low_shot_volume: bool = False
+    explosive_goal_difference_need: bool = False
+    weak_side_chase_opens_space: bool = False
+    late_sub_firepower: bool = False
+
+    btts_tail: bool = False
+    weak_side_goal_chain_high: bool = False
+    top10_has_btts_scores: bool = False
+    btts_yes_model_prob_ge_55: bool = False
+    btts_yes_price_playable: bool = False
+
+
+def evaluate_tail_intensity(f: TailIntensityFactors) -> GateSignal:
+    controlled_clean_score = sum([
+        f.clean_sheet_tail,
+        f.favorite_can_stop_at_three,
+        f.favorite_game_management_after_lead,
+        f.opponent_low_shot_volume,
+    ])
+
+    explosive_clean_score = sum([
+        f.clean_sheet_tail,
+        f.explosive_goal_difference_need,
+        f.weak_side_chase_opens_space,
+        f.late_sub_firepower,
+    ])
+
+    btts_positive_score = sum([
+        f.btts_tail,
+        f.weak_side_goal_chain_high,
+        f.top10_has_btts_scores,
+        f.btts_yes_model_prob_ge_55,
+        f.btts_yes_price_playable,
+    ])
+
+    if btts_positive_score >= 4:
         return GateSignal(
             "caution",
-            "DEEP_RIGHT_TAIL_MIXED",
-            float(max(clean_score, btts_score)),
-            f"混合型右尾：需同時檢查3-0/4-0與3-1/4-1；clean_score={clean_score}, btts_score={btts_score}",
+            "BTTS_TAIL_POSITIVE",
+            float(btts_positive_score),
+            f"BTTS型右尾正向：BTTS是/大球可進B-/B觀察，但仍需EV；controlled_clean={controlled_clean_score}, explosive_clean={explosive_clean_score}",
+        )
+
+    if explosive_clean_score >= 3 and explosive_clean_score > controlled_clean_score:
+        return GateSignal(
+            "no_bet",
+            "EXPLOSIVE_CLEAN_SHEET_TAIL",
+            float(explosive_clean_score),
+            f"爆炸零封右尾：4-0/5-0分支偏高，小3.5不買；controlled_clean={controlled_clean_score}",
+        )
+
+    if controlled_clean_score >= 3:
+        return GateSignal(
+            "downgrade",
+            "CONTROLLED_CLEAN_SHEET_TAIL",
+            float(controlled_clean_score),
+            f"受控零封右尾：偏3-0型，小3.5降級但不必直接No Bet；explosive_clean={explosive_clean_score}",
         )
 
     return GateSignal(
         "ok",
-        "DEEP_RIGHT_TAIL_NONE",
-        float(max(clean_score, btts_score)),
-        f"深右尾未明顯觸發；clean_score={clean_score}, btts_score={btts_score}",
+        "TAIL_INTENSITY_NONE",
+        float(max(controlled_clean_score, explosive_clean_score, btts_positive_score)),
+        f"尾端強度未明顯觸發；controlled_clean={controlled_clean_score}, explosive_clean={explosive_clean_score}, btts_positive={btts_positive_score}",
     )
 
 

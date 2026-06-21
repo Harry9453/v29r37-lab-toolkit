@@ -1,27 +1,21 @@
-## V29-R3.7a-2 Deep Right Tail Split Patch
+## V29-R3.7a-3 Tail Intensity Patch
 
-這不是 V29-R4。這是 V29-R3.7a-1 後的小型右尾分型修正。
+這不是 V29-R4。這是 V29-R3.7a-2 後的小修正。
 
 ### 修正原因
 
-V29-R3.7a-1 已經修正：
+V29-R3.7a-2 已能分辨：
 
 ```text
-Right Tail 不再全市場誤殺 BTTS No。
-小3.5 遇到強右尾會降級或 No Bet。
+Clean-sheet Right Tail：4-0 型
+BTTS Right Tail：5-1 / 4-2 型
 ```
 
-但已完賽驗證顯示，模型仍需要分辨兩種不同右尾：
+但 proxy backtest 顯示仍有兩個問題：
 
 ```text
-Clean-sheet Right Tail：
-Spain 4-0 Saudi Arabia
-Japan 4-0 Tunisia
-Brazil 3-0 Haiti
-
-BTTS Right Tail：
-Netherlands 5-1 Sweden
-England 4-2 Croatia
+1. Brazil 3-0 Haiti 類型，小3.5 被打得太死。
+2. Netherlands 5-1 Sweden / England 4-2 Croatia 類型，BTTS Yes / 大球還太保守。
 ```
 
 ### 新增內容
@@ -29,46 +23,47 @@ England 4-2 Croatia
 `feature_gates.py` 新增：
 
 ```text
-DeepRightTailFactors
-evaluate_deep_right_tail
+TailIntensityFactors
+evaluate_tail_intensity
 ```
 
-會輸出：
+輸出：
 
 ```text
-DEEP_RIGHT_TAIL_CLEAN_SHEET
-DEEP_RIGHT_TAIL_BTTS
-DEEP_RIGHT_TAIL_MIXED
-DEEP_RIGHT_TAIL_NONE
+CONTROLLED_CLEAN_SHEET_TAIL
+EXPLOSIVE_CLEAN_SHEET_TAIL
+BTTS_TAIL_POSITIVE
+TAIL_INTENSITY_NONE
 ```
 
 ### 市場影響
 
-Clean-sheet Right Tail：
+Controlled Clean-sheet Tail：
 
 ```text
-小3.5：降級 / No Bet
-BTTS否：不被右尾硬殺
-弱隊小0.5：可保留，但仍看 Weak-side Gate
+偏 3-0 型。
+小3.5 降級但不直接 No Bet。
+BTTS否可保留。
 ```
 
-BTTS Right Tail：
+Explosive Clean-sheet Tail：
 
 ```text
-小3.5：No Bet
-BTTS否：降級 / No Bet
-大2.5 / BTTS是：可觀察，但仍需 EV
+偏 4-0 / 5-0 型。
+小3.5 No Bet。
+BTTS否不被硬殺。
+```
+
+BTTS Tail Positive：
+
+```text
+偏 5-1 / 4-2 型。
+BTTS否降級。
+BTTS是 / 大球可進 B- / B 觀察，但仍要 EV。
 ```
 
 ### 測試檔
 
 ```text
-examples/deep_right_tail_split_demo.py
-```
-
-測試目的：
-
-```text
-同樣是強隊右尾，
-4-0 型與 5-1 型不能套同一套 BTTS 邏輯。
+examples/tail_intensity_demo.py
 ```

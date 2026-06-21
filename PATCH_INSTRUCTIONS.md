@@ -1,4 +1,4 @@
-# V29-R3.7a-2 Deep Right Tail Split Patch
+# V29-R3.7a-3 Tail Intensity Patch
 
 ## Replace
 
@@ -11,12 +11,12 @@ v29r3/__init__.py
 ## Add
 
 ```text
-examples/deep_right_tail_split_demo.py
+examples/tail_intensity_demo.py
 ```
 
 ## Optional README update
 
-Append the content of:
+Append:
 
 ```text
 README_V29R37_LAB_APPEND.md
@@ -31,15 +31,16 @@ README_V29R37_LAB.md
 ## Commit message
 
 ```text
-Add V29-R3.7a-2 deep right-tail split patch
+Add V29-R3.7a-3 tail intensity patch
 ```
 
 ## Test
 
 ```bash
-PYTHONPATH=. python examples/deep_right_tail_split_demo.py
+PYTHONPATH=. python examples/tail_intensity_demo.py
 ```
 
 Expected:
-- Clean-sheet right tail kills Under 3.5 but does not kill BTTS No.
-- BTTS right tail kills Under 3.5 and downgrades / kills BTTS No.
+- Controlled 3-0 clean-sheet tail downgrades Under 3.5 but does not auto No Bet.
+- Explosive 4-0/5-0 clean-sheet tail kills Under 3.5.
+- BTTS positive tail allows BTTS Yes / Over candidates when EV is playable.
