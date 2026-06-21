@@ -1,0 +1,6 @@
+bet_id,match,bet_type,stake,odds,result,book,profit,model_version,notes,error_tags
+CAN-QAT-001,加拿大 vs 卡達,卡達進球小1.5,200,1.35,win,simulation,70.0,V29-R3,賽前盲模擬；賽後數據閘門復盤,方向正確|比分分布右尾低估|極端壓制重置
+SUI-BIH-001,瑞士 vs 波赫,波赫讓分2:0,200,1.55,loss,simulation,-200.0,V29-R3,弱隊能進球不等於受讓安全,強隊右尾低估|危險進攻差距|受讓安全誤判
+MEX-KOR-001,墨西哥 vs 韓國,BTTS 是,200,2.06,loss,simulation,-200.0,V29-R3,韓國有場面但轉化不足,BTTS高估|控球不等於轉化|1-0分支低估
+CZE-RSA-001,捷克 vs 南非,南非進球小0.5,100,2.00,loss,simulation,-100.0,V29-R3,低比分不等於零封,單隊小0.5脆弱|1-1分支低估
+CZE-RSA-002,捷克 vs 南非,全場小2.5,100,1.52,win,simulation,52.0,V29-R3,小球方向正確但不可延伸零封,方向正確|零封誤推

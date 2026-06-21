@@ -1,0 +1,6 @@
+# 純 Python 核心版，不強制第三方套件。
+# 後續若要接 penaltyblog，再安裝：
+# penaltyblog
+# pandas
+# numpy
+# scipy

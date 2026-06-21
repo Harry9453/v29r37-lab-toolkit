@@ -1,0 +1,45 @@
+return_code=0
+
+STDOUT:
+Top scores:
+1-0 0.13
+2-0 0.1137
+1-1 0.1105
+2-1 0.0967
+0-0 0.0743
+3-0 0.0663
+0-1 0.0631
+3-1 0.0564
+1-2 0.047
+2-2 0.0411
+
+Markets:
+home_win 0.5871
+draw 0.2333
+away_win 0.1796
+under_2_5 0.5184
+over_2_5 0.4816
+away_under_1_5 0.7907
+
+Data Gate signals:
+reset HOME_SOT_RIGHT_TAIL 加拿大 射正≥7，強隊3+右尾上修
+no_bet DANGEROUS_ATTACK_GAP_3X 加拿大 危險進攻是 卡達 3倍以上，卡達 受讓高危
+reset EXTREME_DOMINATION_RESET 極端壓制觸發6項，比分分布重置，強隊大勝右尾上修
+reset PRESSURE_INDUCED_RED_CARD 卡達 紅牌可能是長時間承壓結果，不當純偶發
+
+Stake decision: StakeDecision(recommended_stake=0, status='no_bet', reason='未觸發死亡比分降級，但仍需過 Betting Filter；Data Gate 出現 no_bet', death_count_top5=0, death_probability_top5=0.0)
+
+Ledger summary: {'count': 1, 'stake': 200, 'profit': 70.00000000000001, 'roi': 0.3500000000000001}
+
+
+STDERR:
+Spreadsheet runtime warmup failed during python startup
+Traceback (most recent call last):
+  File "/tmp/tmp.yTcnQsZYiA/artifact_tool_v2-2.8.4/artifact_tool/patches/warm_spreadsheet_runtime_on_startup.py", line 26, in warm_spreadsheet_runtime_on_startup
+  File "/tmp/tmp.yTcnQsZYiA/artifact_tool_v2-2.8.4/artifact_tool/spreadsheet_warmup.py", line 785, in warm_spreadsheet_runtime
+  File "/tmp/tmp.yTcnQsZYiA/artifact_tool_v2-2.8.4/artifact_tool/spreadsheet_warmup.py", line 720, in _warm_feature_flows
+  File "/tmp/tmp.yTcnQsZYiA/artifact_tool_v2-2.8.4/artifact_tool/spreadsheet_warmup.py", line 704, in _warm_collaboration_flows
+  File "/tmp/tmp.yTcnQsZYiA/artifact_tool_v2-2.8.4/artifact_tool/generated/interface/models.py", line 30820, in hydrate_crdt_from_proto
+  File "/tmp/tmp.yTcnQsZYiA/artifact_tool_v2-2.8.4/artifact_tool/rpc/remote.py", line 749, in __call__
+  File "/tmp/tmp.yTcnQsZYiA/artifact_tool_v2-2.8.4/artifact_tool/rpc/client.py", line 150, in call
+artifact_tool.rpc.client.RemoteError: hydrateCrdtFromProto requires an empty collaborative document.
