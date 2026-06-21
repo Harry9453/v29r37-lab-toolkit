@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
+from typing import Iterable, List
 
 
 @dataclass(frozen=True)
@@ -11,6 +11,10 @@ class GateSignal:
     score: float
     message: str
 
+
+# ---------------------------------------------------------------------------
+# Existing V29-R3.7 Gates
+# ---------------------------------------------------------------------------
 
 @dataclass(frozen=True)
 class RightTailFactors:
@@ -111,6 +115,183 @@ def evaluate_dominance_conversion(f: DominanceConversionFactors) -> GateSignal:
     if score >= 3:
         return GateSignal("caution", "DOMINANCE_CONVERSION_RISK", float(score), "轉化風險偏高：不能只看控球與角球")
     return GateSignal("ok", "DOMINANCE_CONVERSION_RISK", float(score), "轉化風險未明顯觸發")
+
+
+# ---------------------------------------------------------------------------
+# V29-R3.7a Right-Tail Calibration Patch
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class LowBlockFragilityFactors:
+    weak_team_back_five_or_low_block: bool = False
+    early_goal_concession_risk: bool = False
+    poor_escape_ball_or_buildout: bool = False
+    favorite_has_wide_overload: bool = False
+    favorite_has_box_finisher: bool = False
+    favorite_needs_goal_difference: bool = False
+
+
+def evaluate_low_block_fragility(f: LowBlockFragilityFactors) -> GateSignal:
+    """
+    Low Block ≠ Stable Under.
+    If a weak side's low block can be broken early, Under 2.5 / 3.5 must be downgraded.
+    """
+    score = sum([
+        f.weak_team_back_five_or_low_block,
+        f.early_goal_concession_risk,
+        f.poor_escape_ball_or_buildout,
+        f.favorite_has_wide_overload,
+        f.favorite_has_box_finisher,
+        f.favorite_needs_goal_difference,
+    ])
+    if score >= 5:
+        return GateSignal(
+            "no_bet",
+            "LOW_BLOCK_FRAGILITY",
+            float(score),
+            "低位防守脆弱且早球後易崩：Under 3.5 不得升A，Under 2.5嚴格不買",
+        )
+    if score >= 4:
+        return GateSignal(
+            "downgrade",
+            "LOW_BLOCK_FRAGILITY",
+            float(score),
+            "低位防守不等於穩定小球：小球降級",
+        )
+    if score >= 3:
+        return GateSignal(
+            "caution",
+            "LOW_BLOCK_FRAGILITY",
+            float(score),
+            "低位防守有破局風險：需檢查3-0/4-0/3-1",
+        )
+    return GateSignal("ok", "LOW_BLOCK_FRAGILITY", float(score), "低位破局風險未明顯觸發")
+
+
+@dataclass(frozen=True)
+class EarlyFavoriteBurstFactors:
+    early_goal_path: bool = False
+    favorite_multi_point_attack: bool = False
+    weak_side_cannot_chase_game: bool = False
+    favorite_pressing_after_lead: bool = False
+    weak_side_defensive_confidence_low: bool = False
+
+
+def evaluate_early_favorite_burst(f: EarlyFavoriteBurstFactors) -> GateSignal:
+    """
+    Early Favorite Burst Rule.
+    Strong favorite early goal path creates 3-0 / 4-0 right-tail branch.
+    """
+    score = sum([
+        f.early_goal_path,
+        f.favorite_multi_point_attack,
+        f.weak_side_cannot_chase_game,
+        f.favorite_pressing_after_lead,
+        f.weak_side_defensive_confidence_low,
+    ])
+    if score >= 4:
+        return GateSignal(
+            "downgrade",
+            "EARLY_FAVORITE_BURST",
+            float(score),
+            "強隊早球爆發條件完整：3-0/4-0/5-0分支上修，小3.5降級",
+        )
+    if score >= 3:
+        return GateSignal(
+            "caution",
+            "EARLY_FAVORITE_BURST",
+            float(score),
+            "強隊有早球後連續進球條件：右尾需上修",
+        )
+    return GateSignal("ok", "EARLY_FAVORITE_BURST", float(score), "早球爆發條件未明顯觸發")
+
+
+@dataclass(frozen=True)
+class CreativeReplacementFactors:
+    star_creator_absent: bool = False
+    central_link_player_available: bool = False
+    wide_breaker_available: bool = False
+    box_finisher_available: bool = False
+    second_ball_midfield_cover: bool = False
+
+
+def evaluate_creative_replacement(f: CreativeReplacementFactors) -> GateSignal:
+    """
+    Creative Absence Replacement Chain.
+    A missing creator does not automatically mean under if the replacement chain is complete.
+    """
+    replacement_score = sum([
+        f.central_link_player_available,
+        f.wide_breaker_available,
+        f.box_finisher_available,
+        f.second_ball_midfield_cover,
+    ])
+
+    if not f.star_creator_absent:
+        return GateSignal("ok", "CREATIVE_REPLACEMENT_CHAIN", float(replacement_score), "未觸發主創缺陣修正")
+
+    if replacement_score >= 4:
+        return GateSignal(
+            "downgrade",
+            "CREATIVE_REPLACEMENT_CHAIN",
+            float(replacement_score),
+            "主創缺陣但替代進攻鏈完整：不得因缺陣自動壓低總進球，強隊右尾保留",
+        )
+    if replacement_score >= 2:
+        return GateSignal(
+            "caution",
+            "CREATIVE_REPLACEMENT_CHAIN",
+            float(replacement_score),
+            "主創缺陣但仍有部分替代鏈：進攻下修幅度需保守",
+        )
+    return GateSignal(
+        "ok",
+        "CREATIVE_REPLACEMENT_CHAIN",
+        float(replacement_score),
+        "主創缺陣且替代鏈不足：可下修進攻",
+    )
+
+
+@dataclass(frozen=True)
+class ManagerShockFactors:
+    recent_heavy_loss: bool = False
+    interim_or_new_manager: bool = False
+    short_preparation_days: bool = False
+    opponent_high_control_favorite: bool = False
+    defensive_confidence_low: bool = False
+
+
+def evaluate_manager_shock(f: ManagerShockFactors) -> GateSignal:
+    """
+    Manager Shock ≠ Defensive Reset.
+    A new manager after a heavy loss is not automatically a defensive upgrade.
+    """
+    score = sum([
+        f.recent_heavy_loss,
+        f.interim_or_new_manager,
+        f.short_preparation_days,
+        f.opponent_high_control_favorite,
+        f.defensive_confidence_low,
+    ])
+    if score >= 4:
+        return GateSignal(
+            "downgrade",
+            "MANAGER_SHOCK_NOT_RESET",
+            float(score),
+            "換帥不等於防守修復：強隊3+機率上修，小球降級",
+        )
+    if score >= 3:
+        return GateSignal(
+            "caution",
+            "MANAGER_SHOCK_NOT_RESET",
+            float(score),
+            "換帥修復效果不明：不得自動上修防守穩定",
+        )
+    return GateSignal("ok", "MANAGER_SHOCK_NOT_RESET", float(score), "換帥風險未明顯觸發")
+
+
+def scoreline_in(scoreline: str, candidates: Iterable[str]) -> bool:
+    return scoreline.replace(" ", "") in {c.replace(" ", "") for c in candidates}
 
 
 def worst_gate_level(signals: List[GateSignal]) -> str:

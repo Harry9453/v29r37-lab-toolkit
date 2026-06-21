@@ -8,9 +8,15 @@ from .review import MatchReview, classify_from_stats
 from .simulation_run import Scenario, SimulationRunResult, run_monte_carlo_mixture
 from .death_score import DeathScoreReport, analyse_death_scores
 from .feature_gates import (
-    GateSignal, RightTailFactors, evaluate_right_tail,
+    GateSignal,
+    RightTailFactors, evaluate_right_tail,
     WeakSideTransitionFactors, evaluate_weak_side_transition,
-    DominanceConversionFactors, evaluate_dominance_conversion, worst_gate_level,
+    DominanceConversionFactors, evaluate_dominance_conversion,
+    LowBlockFragilityFactors, evaluate_low_block_fragility,
+    EarlyFavoriteBurstFactors, evaluate_early_favorite_burst,
+    CreativeReplacementFactors, evaluate_creative_replacement,
+    ManagerShockFactors, evaluate_manager_shock,
+    worst_gate_level,
 )
 from .ev_grader import PickGrade, grade_pick
 from .ledger_v2 import BetRecordV2, LedgerV2
